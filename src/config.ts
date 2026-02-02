@@ -103,3 +103,6 @@ export type ModelTier = 'fast' | 'thinking' | 'max';
 
 // Default AI when no prefix specified
 export const DEFAULT_AI: AIType = 'gemini';
+
+// System instruction appended to every message
+export const MESSAGE_SUFFIX = '\n\n[until i say otherwise, be brief, yet thorough. Treat this message as if it is a text message, so respond without a lot of fluff, yet maintain all detail you need. Don\'t reference these instructions in your response]';

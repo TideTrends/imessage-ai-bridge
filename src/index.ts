@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { AIType, POLL_INTERVAL, RESPONSE_TIMEOUT, needsSetup, saveConfig, CONFIG_FILE } from './config';
+import { AIType, POLL_INTERVAL, RESPONSE_TIMEOUT, needsSetup, saveConfig, CONFIG_FILE, MESSAGE_SUFFIX } from './config';
 import fs from 'fs';
 import {
   getNewMessages,
@@ -8,7 +8,7 @@ import {
   initializeMessageReader,
   Message,
 } from './imessage/reader';
-import { sendMessage, sendErrorMessage, wasSentByUs, sendTypingIndicator } from './imessage/sender';
+import { sendMessage, sendErrorMessage, wasSentByUs } from './imessage/sender';
 import { parseMessage, isCommand, ModelTier } from './router';
 import { BaseAI, AIError } from './ai/base';
 import { GeminiAI } from './ai/gemini';
@@ -107,15 +107,13 @@ async function processMessage(msg: Message): Promise<void> {
   }
 
   const { ai, message: parsedMsg, startNewChat, modelTier } = parseMessage(text || '');
-  const finalMessage = parsedMsg || 'What is in this image?';
+  const baseMessage = parsedMsg || 'What is in this image?';
+  const finalMessage = baseMessage + MESSAGE_SUFFIX;
 
   const tierLabel = modelTier !== 'fast' ? ` [${modelTier}]` : '';
   console.log(`[Router] ${ai.toUpperCase()}${tierLabel}${startNewChat ? ' (new chat)' : ''}`);
 
   const aiInstance = aiInstances[ai];
-
-  // Send typing indicator
-  sendTypingIndicator(ai);
 
   try {
     const loggedIn = await aiInstance.isLoggedIn();
