@@ -22,6 +22,12 @@ It is recommended to create a new iCloud & macOS account for this to run. It wil
 curl -fsSL https://raw.githubusercontent.com/TideTrends/imessage-ai-bridge/main/install.sh | bash
 ```
 
+## How It Works
+
+1. Watches your iMessage database for new texts
+2. Routes to the right AI based on your message
+3. Automates the web interface using Playwright + Chrome
+4. Sends the AI response back via iMessage
 
 ## Quick Start
 
@@ -34,35 +40,6 @@ npm start
 1. Enter your personal phone number/iCloud Email when prompted
 2. Log into AI services in the browser windows that open
 3. Text your AI's iCloud email/your phone number to test!
-
-## Usage
-
-### Choose Your AI
-
-| Message | AI |
-|---------|-----|
-| `Hello` | Gemini (default) |
-| `chatgpt Hello` | ChatGPT |
-| `grok Hello` | Grok |
-
-### Model Power
-
-| Prefix | Mode |
-|--------|------|
-| (none) | Fast/Auto |
-| `.` | Thinking/Pro |
-| `..` | Maximum |
-
-**Examples:**
-- `What's the weather?` → Fast Gemini
-- `.Explain black holes` → Gemini Pro
-- `..chatgpt Write code` → GPT-4
-
-### Special
-
-- **New chat**: Press Enter before your message
-- **Reset all**: Send `reset`
-- **Status check**: Send `status`
 
 ## Requirements
 
@@ -95,12 +72,36 @@ npm run login  # Open browsers for login
 npm run build  # Rebuild after changes
 ```
 
-## How It Works
+## Usage
 
-1. Watches your iMessage database for new texts
-2. Routes to the right AI based on your message
-3. Automates the web interface using Playwright + Chrome
-4. Sends the AI response back via iMessage
+### Choose Your AI
+
+| Message | AI |
+|---------|-----|
+| `Hello` | Gemini (default) |
+| `chatgpt Hello` | ChatGPT |
+| `grok Hello` | Grok |
+
+### Model Power
+
+| Prefix | Mode |
+|--------|------|
+| (none) | Fast/Auto |
+| `.` | Thinking/Pro |
+| `..` | Maximum |
+
+**Examples:**
+- `What's the weather?` → Fast Gemini
+- `.Explain black holes` → Gemini Pro
+- `..chatgpt Write code` → GPT Thinking
+
+### Features
+
+- **New chat**: Press Enter before your message
+- **Reset all**: Send `reset`
+- **Status check**: Send `status`
+
+
 
 ## Troubleshooting
 
