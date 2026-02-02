@@ -14,6 +14,13 @@ Send a text message → Get an AI response back. That's it.
 - **Images** - Send photos for AI analysis
 - **Smart models** - Begin message with `.` for thinking mode, `..` for max power
 
+## How It Works
+
+1. Watches your iMessage database for new texts
+2. Routes to the right AI based on your message
+3. Automates the web interface using Playwright + Chrome
+4. Sends the AI response back via iMessage
+
 It is recommended to create a new iCloud & macOS account for this to run. It will work if you do not do this, albeit in the text thread you will see the same message received and sent, which breaks the authenticity. Again, fully functional, but highly recommended to use an old Mac with it's own iCloud email to accomplish this, particularly because the computer needs to be on constantly. Use Amphetamine app to keep the mac on all the time. 
 
 ## One-Line Install
@@ -22,12 +29,6 @@ It is recommended to create a new iCloud & macOS account for this to run. It wil
 curl -fsSL https://raw.githubusercontent.com/TideTrends/imessage-ai-bridge/main/install.sh | bash
 ```
 
-## How It Works
-
-1. Watches your iMessage database for new texts
-2. Routes to the right AI based on your message
-3. Automates the web interface using Playwright + Chrome
-4. Sends the AI response back via iMessage
 
 ## Quick Start
 
@@ -53,24 +54,7 @@ npm start
 Grant **Full Disk Access** to Terminal:
 > System Settings → Privacy & Security → Full Disk Access → Add Terminal
 
-## Manual Install
 
-```bash
-git clone https://github.com/TideTrends/imessage-ai-bridge.git
-cd imessage-ai-bridge
-npm install
-npx playwright install chromium
-npm run build
-npm start
-```
-
-## Commands
-
-```bash
-npm start      # Run the bridge
-npm run login  # Open browsers for login
-npm run build  # Rebuild after changes
-```
 
 ## Usage
 
@@ -101,6 +85,25 @@ npm run build  # Rebuild after changes
 - **Reset all**: Send `reset`
 - **Status check**: Send `status`
 
+
+## Manual Install
+
+```bash
+git clone https://github.com/TideTrends/imessage-ai-bridge.git
+cd imessage-ai-bridge
+npm install
+npx playwright install chromium
+npm run build
+npm start
+```
+
+## Commands
+
+```bash
+npm start      # Run the bridge
+npm run login  # Open browsers for login
+npm run build  # Rebuild after changes
+```
 
 
 ## Troubleshooting
