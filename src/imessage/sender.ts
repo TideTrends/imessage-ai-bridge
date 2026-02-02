@@ -15,15 +15,48 @@ function getTargetPhone(): string {
   return '';
 }
 
-// Track messages we've sent to avoid processing them as incoming
-const sentMessages = new Set<string>();
+// Track messages we've sent - use a longer-lived set with timestamps
+const sentMessages = new Map<string, number>();
+const SENT_MESSAGE_TTL = 30000; // 30 seconds
+
+// Also track specific patterns that are always from us
+const OUR_PATTERNS = [
+  /^Sorry, couldn't complete request/,
+  /^Sorry, try again/,
+  /^\[.+\] Session expired/,
+  /^All conversations have been reset/,
+  /^iMessage AI Bridge running/,
+  /^Test Summary:/,
+  /^\[.+ Test\]/,
+];
 
 export function wasSentByUs(text: string): boolean {
+  if (!text) return false;
+  
   const trimmed = text.trim();
+  
+  // Check if matches our known patterns
+  for (const pattern of OUR_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return true;
+    }
+  }
+  
+  // Check tracked messages
+  const now = Date.now();
+  
+  // Clean old entries
+  for (const [msg, time] of sentMessages.entries()) {
+    if (now - time > SENT_MESSAGE_TTL) {
+      sentMessages.delete(msg);
+    }
+  }
+  
   if (sentMessages.has(trimmed)) {
     sentMessages.delete(trimmed);
     return true;
   }
+  
   return false;
 }
 
@@ -45,7 +78,8 @@ export function sendMessage(text: string, phone?: string): void {
   
   const escapedText = escapeForAppleScript(text);
   
-  sentMessages.add(text.trim());
+  // Track this message
+  sentMessages.set(text.trim(), Date.now());
   
   const script = `
 tell application "Messages"

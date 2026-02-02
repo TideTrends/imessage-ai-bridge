@@ -1,4 +1,5 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import { execSync } from 'child_process';
 import { AIType, ModelTier, RESPONSE_TIMEOUT, STABILIZATION_TIME } from '../config';
 
 export interface AIError extends Error {
@@ -47,6 +48,10 @@ export abstract class BaseAI {
     });
 
     await this.page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+    // Dismiss any popups/modals that appear
+    await this.sleep(2000);
+    await this.dismissPopups();
 
     this.isInitialized = true;
     console.log(`[${this.name}] Browser initialized`);
@@ -152,6 +157,106 @@ export abstract class BaseAI {
     }
     this.isInitialized = false;
     console.log(`[${this.name}] Browser closed`);
+  }
+
+  /**
+   * Dismiss popups, modals, and "what's new" dialogs
+   */
+  async dismissPopups(): Promise<void> {
+    if (!this.page) return;
+
+    console.log(`[${this.name}] Checking for popups to dismiss...`);
+
+    try {
+      // Common dismiss button selectors
+      const dismissSelectors = [
+        // Generic close/dismiss buttons
+        'button[aria-label="Close"]',
+        'button[aria-label="Dismiss"]',
+        'button[aria-label="Got it"]',
+        'button[aria-label="OK"]',
+        'button[aria-label="Skip"]',
+        'button[aria-label="No thanks"]',
+        'button[aria-label="Maybe later"]',
+        // Text-based buttons
+        'button:has-text("Got it")',
+        'button:has-text("OK")',
+        'button:has-text("Close")',
+        'button:has-text("Dismiss")',
+        'button:has-text("Skip")',
+        'button:has-text("No thanks")',
+        'button:has-text("Maybe later")',
+        'button:has-text("Not now")',
+        'button:has-text("Continue")',
+        // Material/Angular style
+        'mat-dialog-container button',
+        '[role="dialog"] button[aria-label="Close"]',
+        '[role="dialog"] button:has-text("Got it")',
+        '[role="alertdialog"] button',
+        // Overlay close buttons
+        '.modal-close',
+        '.dialog-close',
+        '[data-testid="close-button"]',
+        // X buttons
+        'button[aria-label="close"]',
+        'button svg[data-testid="CloseIcon"]',
+      ];
+
+      for (const selector of dismissSelectors) {
+        try {
+          const button = await this.page.$(selector);
+          if (button) {
+            const isVisible = await button.isVisible();
+            if (isVisible) {
+              console.log(`[${this.name}] Dismissing popup with: ${selector}`);
+              await button.click();
+              await this.sleep(500);
+            }
+          }
+        } catch {
+          // Selector didn't match, continue
+        }
+      }
+
+      // Also try pressing Escape to close any modal
+      await this.page.keyboard.press('Escape');
+      await this.sleep(300);
+
+    } catch (error) {
+      console.log(`[${this.name}] Error dismissing popups: ${error}`);
+    }
+  }
+
+  /**
+   * Copy an image to clipboard and paste it (macOS)
+   */
+  protected async pasteImageFromClipboard(imagePath: string): Promise<boolean> {
+    if (!this.page) return false;
+
+    try {
+      // Use osascript to copy image to clipboard
+      const script = `
+        set theFile to POSIX file "${imagePath}"
+        set theImage to read theFile as TIFF picture
+        set the clipboard to theImage
+      `;
+      
+      execSync(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`);
+      console.log(`[${this.name}] Image copied to clipboard`);
+
+      // Give clipboard a moment
+      await this.sleep(200);
+
+      // Paste with Cmd+V
+      await this.page.keyboard.press('Meta+v');
+      await this.sleep(1000);
+
+      console.log(`[${this.name}] Image pasted from clipboard`);
+      return true;
+    } catch (error) {
+      console.error(`[${this.name}] Clipboard paste failed:`, error);
+      return false;
+    }
   }
 
   protected createError(message: string, code: string): AIError {

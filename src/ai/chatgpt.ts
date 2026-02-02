@@ -64,20 +64,30 @@ export class ChatGPTAI extends BaseAI {
   async uploadImages(imagePaths: string[]): Promise<void> {
     if (!this.page || imagePaths.length === 0) return;
 
+    console.log(`[chatgpt] Attempting to upload ${imagePaths.length} image(s) via clipboard paste`);
+
     try {
-      // ChatGPT has a file input or attach button
-      const attachBtn = await this.page.$('button[aria-label*="Attach"], button[aria-label*="Upload"], button[data-testid="attach-button"]');
-      if (attachBtn) {
-        await attachBtn.click();
+      // Dismiss any popups first
+      await this.dismissPopups();
+      await this.sleep(300);
+
+      // Focus on the input area first
+      const inputArea = await this.page.$('#prompt-textarea');
+      if (inputArea) {
+        await inputArea.click();
         await this.sleep(300);
       }
 
-      const fileInput = await this.page.$('input[type="file"]');
-      if (fileInput) {
-        await fileInput.setInputFiles(imagePaths);
-        await this.sleep(2000); // Wait for upload
-        console.log(`[chatgpt] Uploaded ${imagePaths.length} image(s)`);
+      // Paste each image from clipboard
+      for (const imagePath of imagePaths) {
+        console.log(`[chatgpt] Pasting image: ${imagePath}`);
+        const success = await this.pasteImageFromClipboard(imagePath);
+        if (success) {
+          await this.sleep(2000); // Wait for image to process
+        }
       }
+
+      console.log(`[chatgpt] Image paste complete`);
     } catch (error) {
       console.log(`[chatgpt] Image upload failed: ${error}`);
     }
@@ -85,6 +95,9 @@ export class ChatGPTAI extends BaseAI {
 
   protected async typeMessage(message: string): Promise<void> {
     if (!this.page) throw this.createError('Page not initialized', 'NOT_INITIALIZED');
+
+    // Dismiss any popups before typing
+    await this.dismissPopups();
 
     const inputSelector = '#prompt-textarea';
     

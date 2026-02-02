@@ -22,7 +22,6 @@ export class GeminiAI extends BaseAI {
     if (!this.page) return;
 
     try {
-      // Click the model dropdown (usually near the top)
       const modelSelector = await this.page.$('button[aria-label*="model"], div[class*="model-selector"], button[class*="model"]');
       if (!modelSelector) {
         console.log(`[gemini] Model selector not found, using default`);
@@ -32,8 +31,6 @@ export class GeminiAI extends BaseAI {
       await modelSelector.click();
       await this.sleep(500);
 
-      // Select based on tier
-      // Gemini models: Flash (fast), Pro (thinking), Ultra (max)
       let modelName = '';
       switch (tier) {
         case 'fast':
@@ -61,41 +58,40 @@ export class GeminiAI extends BaseAI {
   async uploadImages(imagePaths: string[]): Promise<void> {
     if (!this.page || imagePaths.length === 0) return;
 
+    console.log(`[gemini] Attempting to upload ${imagePaths.length} image(s) via clipboard paste`);
+
     try {
-      // Find the file input or attach button
-      const fileInput = await this.page.$('input[type="file"]');
-      if (fileInput) {
-        await fileInput.setInputFiles(imagePaths);
-        await this.sleep(1000);
-        console.log(`[gemini] Uploaded ${imagePaths.length} image(s)`);
-        return;
+      // Dismiss any popups first
+      await this.dismissPopups();
+      await this.sleep(300);
+
+      // Focus on the input area first
+      const inputArea = await this.page.$('div.ql-editor[contenteditable="true"]');
+      if (inputArea) {
+        await inputArea.click();
+        await this.sleep(300);
       }
 
-      // Try clicking attach button first
-      const attachBtn = await this.page.$('button[aria-label*="Add"], button[aria-label*="attach"], button[aria-label*="image"]');
-      if (attachBtn) {
-        await attachBtn.click();
-        await this.sleep(300);
-        
-        const input = await this.page.$('input[type="file"]');
-        if (input) {
-          await input.setInputFiles(imagePaths);
-          await this.sleep(1000);
-          console.log(`[gemini] Uploaded ${imagePaths.length} image(s)`);
+      // Paste each image from clipboard
+      for (const imagePath of imagePaths) {
+        console.log(`[gemini] Pasting image: ${imagePath}`);
+        const success = await this.pasteImageFromClipboard(imagePath);
+        if (success) {
+          await this.sleep(2000); // Wait for image to process
         }
       }
+
+      console.log(`[gemini] Image paste complete`);
     } catch (error) {
-      console.log(`[gemini] Image upload failed: ${error}`);
+      console.error(`[gemini] Image upload failed:`, error);
     }
   }
 
   protected async typeMessage(message: string): Promise<void> {
     if (!this.page) throw this.createError('Page not initialized', 'NOT_INITIALIZED');
 
-    try {
-      await this.page.keyboard.press('Escape');
-      await this.sleep(300);
-    } catch {}
+    // Dismiss any popups before typing
+    await this.dismissPopups();
 
     const inputSelector = 'div.ql-editor[contenteditable="true"]';
     
@@ -114,6 +110,7 @@ export class GeminiAI extends BaseAI {
     const sendButtonSelector = 'button[aria-label*="Send"]';
     
     try {
+      await this.sleep(500); // Wait for any upload to settle
       const sendButton = await this.page.$(sendButtonSelector);
       if (sendButton) {
         await sendButton.click();
@@ -128,7 +125,7 @@ export class GeminiAI extends BaseAI {
   protected async waitForResponse(timeout: number): Promise<string> {
     if (!this.page) throw this.createError('Page not initialized', 'NOT_INITIALIZED');
 
-    await this.sleep(1000);
+    await this.sleep(2000); // Wait longer for image processing
 
     const getLastResponse = async (): Promise<string> => {
       try {
