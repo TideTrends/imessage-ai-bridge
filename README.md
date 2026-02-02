@@ -4,11 +4,6 @@ Text your AI. Get responses via iMessage.
 
 **Gemini • ChatGPT • Grok** — all through iMessage, completely free.
 
-## One-Line Install
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/TideTrends/imessage-ai-bridge/main/install.sh | bash
-```
 
 ## What It Does
 
@@ -20,6 +15,13 @@ Send a text message → Get an AI response back. That's it.
 - **Smart models** - Begin message with `.` for thinking mode, `..` for max power
 
 It is recommended to create a new iCloud & macOS account for this to run. It will work if you do not do this, albeit in the text thread you will see the same message received and sent, which breaks the authenticity. Again, fully functional, but highly recommended to use an old Mac with it's own iCloud email to accomplish this, particularly because the computer needs to be on constantly. Use Amphetamine app to keep the mac on all the time. 
+
+## One-Line Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TideTrends/imessage-ai-bridge/main/install.sh | bash
+```
+
 
 ## Quick Start
 
