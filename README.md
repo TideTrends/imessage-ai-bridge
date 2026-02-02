@@ -17,7 +17,9 @@ Send a text message → Get an AI response back. That's it.
 - **No API costs** - Uses web interfaces directly
 - **Multiple AIs** - Switch between Gemini, ChatGPT, and Grok
 - **Images** - Send photos for AI analysis
-- **Smart models** - Use `.` for thinking mode, `..` for max power
+- **Smart models** - Begin message with `.` for thinking mode, `..` for max power
+
+It is recommended to create a new iCloud & macOS account for this to run. It will work if you do not do this, albeit in the text thread you will see the same message received and sent, which breaks the authenticity. Again, fully functional, but highly recommended to use an old Mac with it's own iCloud email to accomplish this, particularly because the computer needs to be on constantly. Use Amphetamine app to keep the mac on all the time. 
 
 ## Quick Start
 
@@ -27,10 +29,9 @@ After installing:
 cd ~/imessage-ai-bridge
 npm start
 ```
-
-1. Enter your phone number when prompted
+1. Enter your personal phone number/iCloud Email when prompted
 2. Log into AI services in the browser windows that open
-3. Text yourself to test!
+3. Text your AI's iCloud email/your phone number to test!
 
 ## Usage
 
