@@ -120,4 +120,4 @@ MIT
 
 ## Disclaimer
 
-Automating web interfaces may violate terms of service. Use responsibly.
+Automating web interfaces may violate terms of service. Please be advised this can result in bans, rate limits, and more. I am not liable for anything you decide to do with this.
