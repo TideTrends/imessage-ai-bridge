@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Browser data (contains session cookies - sensitive!)
+browser-data/
+
+# State files
+state/
+
+# User config (contains phone number)
+config.json
+
+# Environment files
+.env
+.env.local
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test files
+src/test*.ts
+src/debug*.ts

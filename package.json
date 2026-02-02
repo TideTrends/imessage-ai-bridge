@@ -1,0 +1,44 @@
+{
+  "name": "imessage-ai-bridge",
+  "version": "2.0.0",
+  "description": "Text your AI through iMessage. Gemini, ChatGPT, and Grok - completely free.",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js",
+    "login": "tsc && node dist/login.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TideTrends/imessage-ai-bridge.git"
+  },
+  "keywords": [
+    "imessage",
+    "ai",
+    "chatgpt",
+    "gemini",
+    "grok",
+    "automation",
+    "macos",
+    "sms"
+  ],
+  "author": "TideTrends",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/TideTrends/imessage-ai-bridge/issues"
+  },
+  "homepage": "https://github.com/TideTrends/imessage-ai-bridge#readme",
+  "dependencies": {
+    "better-sqlite3": "^11.7.0",
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
