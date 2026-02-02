@@ -28,6 +28,8 @@ const OUR_PATTERNS = [
   /^iMessage AI Bridge running/,
   /^Test Summary:/,
   /^\[.+ Test\]/,
+  /^thinking\.\.\.$/,
+  /^\w+ is thinking\.\.\.$/,
 ];
 
 export function wasSentByUs(text: string): boolean {
@@ -109,5 +111,10 @@ export function sendErrorMessage(errorCode?: string | number): void {
     ? `Sorry, couldn't complete request. Error: ${errorCode}`
     : 'Sorry, try again.';
   
+  sendMessage(message);
+}
+
+export function sendTypingIndicator(aiName: string): void {
+  const message = `${aiName} is thinking...`;
   sendMessage(message);
 }

@@ -64,30 +64,23 @@ export class ChatGPTAI extends BaseAI {
   async uploadImages(imagePaths: string[]): Promise<void> {
     if (!this.page || imagePaths.length === 0) return;
 
-    console.log(`[chatgpt] Attempting to upload ${imagePaths.length} image(s) via clipboard paste`);
+    console.log(`[chatgpt] Uploading ${imagePaths.length} image(s) via clipboard paste`);
 
     try {
-      // Dismiss any popups first
-      await this.dismissPopups();
-      await this.sleep(300);
-
       // Focus on the input area first
       const inputArea = await this.page.$('#prompt-textarea');
       if (inputArea) {
         await inputArea.click();
-        await this.sleep(300);
+        await this.sleep(200);
       }
 
       // Paste each image from clipboard
       for (const imagePath of imagePaths) {
-        console.log(`[chatgpt] Pasting image: ${imagePath}`);
         const success = await this.pasteImageFromClipboard(imagePath);
         if (success) {
-          await this.sleep(2000); // Wait for image to process
+          await this.sleep(1500);
         }
       }
-
-      console.log(`[chatgpt] Image paste complete`);
     } catch (error) {
       console.log(`[chatgpt] Image upload failed: ${error}`);
     }
@@ -95,9 +88,6 @@ export class ChatGPTAI extends BaseAI {
 
   protected async typeMessage(message: string): Promise<void> {
     if (!this.page) throw this.createError('Page not initialized', 'NOT_INITIALIZED');
-
-    // Dismiss any popups before typing
-    await this.dismissPopups();
 
     const inputSelector = '#prompt-textarea';
     

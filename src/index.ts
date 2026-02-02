@@ -1,5 +1,6 @@
 import * as readline from 'readline';
-import { AIType, POLL_INTERVAL, RESPONSE_TIMEOUT, needsSetup, saveConfig } from './config';
+import { AIType, POLL_INTERVAL, RESPONSE_TIMEOUT, needsSetup, saveConfig, CONFIG_FILE } from './config';
+import fs from 'fs';
 import {
   getNewMessages,
   getLastMessageId,
@@ -7,7 +8,7 @@ import {
   initializeMessageReader,
   Message,
 } from './imessage/reader';
-import { sendMessage, sendErrorMessage, wasSentByUs } from './imessage/sender';
+import { sendMessage, sendErrorMessage, wasSentByUs, sendTypingIndicator } from './imessage/sender';
 import { parseMessage, isCommand, ModelTier } from './router';
 import { BaseAI, AIError } from './ai/base';
 import { GeminiAI } from './ai/gemini';
@@ -113,6 +114,9 @@ async function processMessage(msg: Message): Promise<void> {
 
   const aiInstance = aiInstances[ai];
 
+  // Send typing indicator
+  sendTypingIndicator(ai);
+
   try {
     const loggedIn = await aiInstance.isLoggedIn();
     if (!loggedIn) {
@@ -216,6 +220,16 @@ async function main(): Promise<void> {
   console.log('║  Gemini (default) | ChatGPT | Grok     ║');
   console.log('║  Prefixes: . = thinking, .. = max     ║');
   console.log('╚════════════════════════════════════════╝\n');
+
+  // Check for --setup flag to force reconfiguration
+  if (process.argv.includes('--setup')) {
+    // Delete existing config to force setup
+    if (fs.existsSync(CONFIG_FILE)) {
+      fs.unlinkSync(CONFIG_FILE);
+    }
+    await runSetup();
+    return;
+  }
 
   // Check if setup needed
   if (needsSetup()) {
