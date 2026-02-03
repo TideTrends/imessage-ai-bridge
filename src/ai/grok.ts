@@ -24,11 +24,15 @@ export class GrokAI extends BaseAI {
       // Grok has "Think Harder" or model selection
       // Look for the thinking toggle or model selector
       if (tier === 'thinking' || tier === 'max') {
-        const thinkBtn = await this.page.$('button:has-text("Think"), div:has-text("Think Harder")');
-        if (thinkBtn) {
-          await thinkBtn.click();
-          await this.sleep(500);
-          console.log(`[grok] Enabled thinking mode`);
+        const buttons = await this.page.$$('button, div');
+        for (const btn of buttons) {
+          const text = await this.page.evaluate(el => el.textContent, btn);
+          if (text?.toLowerCase().includes('think')) {
+            await btn.click();
+            await this.sleep(500);
+            console.log(`[grok] Enabled thinking mode`);
+            return;
+          }
         }
       }
       // For fast/default, we don't need to do anything
@@ -107,7 +111,7 @@ export class GrokAI extends BaseAI {
         const responseDivs = await this.page!.$$('div[class*="r-1wbh5a2"][class*="r-bnwqim"]');
         if (responseDivs.length > 0) {
           const last = responseDivs[responseDivs.length - 1];
-          const text = await last.textContent();
+          const text = await this.getTextContent(last);
           return text?.trim() || '';
         }
       } catch {}
@@ -116,7 +120,7 @@ export class GrokAI extends BaseAI {
         const textDivs = await this.page!.$$('div[class*="r-rjixqe"]');
         if (textDivs.length > 0) {
           const last = textDivs[textDivs.length - 1];
-          const text = await last.textContent();
+          const text = await this.getTextContent(last);
           return text?.trim() || '';
         }
       } catch {}

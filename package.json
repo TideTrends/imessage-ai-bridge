@@ -31,7 +31,8 @@
   "homepage": "https://github.com/TideTrends/imessage-ai-bridge#readme",
   "dependencies": {
     "better-sqlite3": "^11.7.0",
-    "playwright": "^1.49.0"
+    "playwright": "^1.49.0",
+    "puppeteer-core": "^24.36.1"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",

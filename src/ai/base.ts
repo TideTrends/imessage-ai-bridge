@@ -1,4 +1,4 @@
-import { chromium, Browser, BrowserContext, Page } from 'playwright';
+import puppeteer, { Browser, Page } from 'puppeteer-core';
 import { execSync } from 'child_process';
 import { AIType, ModelTier, RESPONSE_TIMEOUT, STABILIZATION_TIME, BROWSER_PROFILES } from '../config';
 
@@ -8,7 +8,6 @@ export interface AIError extends Error {
 
 export abstract class BaseAI {
   protected browser: Browser | null = null;
-  protected context: BrowserContext | null = null;
   protected page: Page | null = null;
   protected isInitialized = false;
   protected currentModelTier: ModelTier = 'fast';
@@ -19,9 +18,6 @@ export abstract class BaseAI {
     protected readonly browserDataPath: string
   ) {}
 
-  /**
-   * Initialize the browser with persistent context
-   */
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
 
@@ -29,50 +25,22 @@ export abstract class BaseAI {
 
     const profileName = BROWSER_PROFILES[this.name];
     
-    this.context = await chromium.launchPersistentContext(this.browserDataPath, {
-      channel: 'chrome',
+    this.browser = await puppeteer.launch({
       headless: false,
-      viewport: null,
+      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      userDataDir: this.browserDataPath,
       args: [
         `--profile-directory=${profileName}`,
-        '--disable-blink-features=AutomationControlled',
-        '--disable-infobars',
         '--no-first-run',
         '--no-default-browser-check',
       ],
-      ignoreDefaultArgs: ['--enable-automation'],
-      locale: 'en-US',
-      timezoneId: 'America/Denver',
     });
 
-    const pages = this.context.pages();
-    this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
-
-    await this.page.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-      
-      Object.defineProperty(navigator, 'plugins', {
-        get: () => [1, 2, 3, 4, 5],
-      });
-      
-      Object.defineProperty(navigator, 'languages', {
-        get: () => ['en-US', 'en'],
-      });
-      
-      // @ts-ignore
-      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
-      // @ts-ignore
-      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
-      // @ts-ignore
-      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
-      
-      // @ts-ignore
-      window.chrome = { runtime: {} };
-    });
+    const pages = await this.browser.pages();
+    this.page = pages.length > 0 ? pages[0] : await this.browser.newPage();
 
     await this.page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-    // Dismiss any popups/modals that appear
     await this.sleep(2000);
     await this.dismissPopups();
 
@@ -173,35 +141,28 @@ export abstract class BaseAI {
   }
 
   async cleanup(): Promise<void> {
-    if (this.context) {
-      await this.context.close();
-      this.context = null;
+    if (this.browser) {
+      await this.browser.close();
+      this.browser = null;
       this.page = null;
     }
     this.isInitialized = false;
     console.log(`[${this.name}] Browser closed`);
   }
 
-  /**
-   * Dismiss popups only if something is blocking the input
-   * Fast check first, then only dismiss if needed
-   */
   async dismissPopups(): Promise<void> {
     if (!this.page) return;
 
     try {
-      // Quick check: is there a dialog/modal/overlay visible?
       const blockingElement = await this.page.$('[role="dialog"]:visible, [role="alertdialog"]:visible, .modal:visible, mat-dialog-container');
       
       if (!blockingElement) {
-        // No blocking element detected, just press Escape once and continue
         await this.page.keyboard.press('Escape');
         return;
       }
 
       console.log(`[${this.name}] Popup detected, dismissing...`);
 
-      // Only check dismiss buttons if there's actually a blocking element
       const dismissSelectors = [
         'button:has-text("Got it")',
         'button:has-text("OK")',
@@ -216,33 +177,30 @@ export abstract class BaseAI {
       for (const selector of dismissSelectors) {
         try {
           const button = await this.page.$(selector);
-          if (button && await button.isVisible()) {
-            console.log(`[${this.name}] Clicking: ${selector}`);
-            await button.click();
-            await this.sleep(300);
-            return; // One click should do it
+          if (button) {
+            const isVisible = await button.isIntersectingViewport();
+            if (isVisible) {
+              console.log(`[${this.name}] Clicking: ${selector}`);
+              await button.click();
+              await this.sleep(300);
+              return;
+            }
           }
         } catch {
           continue;
         }
       }
 
-      // Fallback: press Escape
       await this.page.keyboard.press('Escape');
 
     } catch {
-      // Silent fail - popup check shouldn't break the flow
     }
   }
 
-  /**
-   * Copy an image to clipboard and paste it (macOS)
-   */
   protected async pasteImageFromClipboard(imagePath: string): Promise<boolean> {
     if (!this.page) return false;
 
     try {
-      // Use osascript to copy image to clipboard
       const script = `
         set theFile to POSIX file "${imagePath}"
         set theImage to read theFile as TIFF picture
@@ -252,11 +210,11 @@ export abstract class BaseAI {
       execSync(`osascript -e '${script.replace(/'/g, "'\"'\"'")}'`);
       console.log(`[${this.name}] Image copied to clipboard`);
 
-      // Give clipboard a moment
       await this.sleep(200);
 
-      // Paste with Cmd+V
-      await this.page.keyboard.press('Meta+v');
+      await this.page.keyboard.down('Meta');
+      await this.page.keyboard.press('KeyV');
+      await this.page.keyboard.up('Meta');
       await this.sleep(1000);
 
       console.log(`[${this.name}] Image pasted from clipboard`);
@@ -277,23 +235,24 @@ export abstract class BaseAI {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  /**
-   * Random delay between min and max ms for human-like behavior
-   */
+  protected async getTextContent(element: any): Promise<string | null> {
+    return await this.page!.evaluate(el => el.textContent, element);
+  }
+
+  protected async getAttribute(element: any, attr: string): Promise<string | null> {
+    return await this.page!.evaluate((el, attribute) => el.getAttribute(attribute), element, attr);
+  }
+
   protected randomDelay(min: number, max: number): Promise<void> {
     const delay = Math.floor(Math.random() * (max - min + 1)) + min;
     return this.sleep(delay);
   }
 
-  /**
-   * Type with human-like variable speed
-   */
   protected async humanType(text: string): Promise<void> {
     if (!this.page) return;
     
     for (const char of text) {
       await this.page.keyboard.type(char);
-      // Random delay between 30-120ms per character (human typing speed)
       await this.randomDelay(30, 120);
     }
   }

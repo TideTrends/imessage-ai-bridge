@@ -44,11 +44,15 @@ export class GeminiAI extends BaseAI {
           break;
       }
 
-      const modelOption = await this.page.$(`button:has-text("${modelName}"), div:has-text("${modelName}")`);
-      if (modelOption) {
-        await modelOption.click();
-        await this.sleep(500);
-        console.log(`[gemini] Selected ${tier} model`);
+      const buttons = await this.page.$$('button, div');
+      for (const btn of buttons) {
+        const text = await this.page.evaluate(el => el.textContent, btn);
+        if (text?.toLowerCase().includes(modelName.toLowerCase())) {
+          await btn.click();
+          await this.sleep(500);
+          console.log(`[gemini] Selected ${tier} model`);
+          return;
+        }
       }
     } catch (error) {
       console.log(`[gemini] Could not change model: ${error}`);
@@ -90,7 +94,7 @@ export class GeminiAI extends BaseAI {
     const input = await this.page.$(inputSelector);
     if (!input) throw this.createError('Could not find input field', 'INPUT_NOT_FOUND');
     
-    await input.click({ force: true });
+    await input.click();
     await this.randomDelay(100, 300);
     await this.humanType(message);
   }
@@ -125,7 +129,7 @@ export class GeminiAI extends BaseAI {
           const lastResponse = responses[responses.length - 1];
           const markdown = await lastResponse.$('div[class*="markdown"]');
           const target = markdown || lastResponse;
-          const text = await target.textContent();
+          const text = await this.getTextContent(target);
           return text?.trim() || '';
         }
       } catch {}
@@ -134,7 +138,7 @@ export class GeminiAI extends BaseAI {
         const markdowns = await this.page!.$$('div[class*="markdown"]');
         if (markdowns.length > 0) {
           const last = markdowns[markdowns.length - 1];
-          const text = await last.textContent();
+          const text = await this.getTextContent(last);
           return text?.trim() || '';
         }
       } catch {}

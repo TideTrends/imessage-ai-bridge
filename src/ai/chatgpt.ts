@@ -48,7 +48,7 @@ export class ChatGPTAI extends BaseAI {
       // Find and click the model option
       const options = await this.page.$$('div[role="option"], button[role="menuitem"], div[class*="model-option"]');
       for (const opt of options) {
-        const text = await opt.textContent();
+        const text = await this.getTextContent(opt);
         if (text?.toLowerCase().includes(modelPattern)) {
           await opt.click();
           await this.sleep(500);
@@ -111,7 +111,7 @@ export class ChatGPTAI extends BaseAI {
       
       const sendButton = await this.page.$(sendButtonSelector);
       if (sendButton) {
-        const isDisabled = await sendButton.getAttribute('disabled');
+        const isDisabled = await this.getAttribute(sendButton, 'disabled');
         if (!isDisabled) {
           await sendButton.click();
           return;
@@ -147,7 +147,7 @@ export class ChatGPTAI extends BaseAI {
             const lastResponse = responses[responses.length - 1];
             const markdownDiv = await lastResponse.$('.markdown, .prose');
             const target = markdownDiv || lastResponse;
-            const text = await target.textContent();
+            const text = await this.getTextContent(target);
             return text?.trim() || '';
           }
         } catch {
