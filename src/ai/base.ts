@@ -1,6 +1,6 @@
 import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { execSync } from 'child_process';
-import { AIType, ModelTier, RESPONSE_TIMEOUT, STABILIZATION_TIME } from '../config';
+import { AIType, ModelTier, RESPONSE_TIMEOUT, STABILIZATION_TIME, BROWSER_PROFILES } from '../config';
 
 export interface AIError extends Error {
   code?: string | number;
@@ -27,25 +27,20 @@ export abstract class BaseAI {
 
     console.log(`[${this.name}] Launching browser...`);
 
+    const profileName = BROWSER_PROFILES[this.name];
+    
     this.context = await chromium.launchPersistentContext(this.browserDataPath, {
       channel: 'chrome',
       headless: false,
       viewport: null,
       args: [
-        // Anti-detection flags
+        `--profile-directory=${profileName}`,
         '--disable-blink-features=AutomationControlled',
         '--disable-infobars',
         '--no-first-run',
         '--no-default-browser-check',
-        '--disable-background-timer-throttling',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-renderer-backgrounding',
-        '--disable-component-update',
-        '--disable-dev-shm-usage',
-        '--no-sandbox',
       ],
       ignoreDefaultArgs: ['--enable-automation'],
-      // Use real browser locale/timezone
       locale: 'en-US',
       timezoneId: 'America/Denver',
     });
@@ -53,22 +48,17 @@ export abstract class BaseAI {
     const pages = this.context.pages();
     this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
 
-    // Comprehensive anti-detection script
     await this.page.addInitScript(() => {
-      // Hide webdriver
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
       
-      // Hide automation flags
       Object.defineProperty(navigator, 'plugins', {
-        get: () => [1, 2, 3, 4, 5], // Fake plugins array
+        get: () => [1, 2, 3, 4, 5],
       });
       
-      // Fake languages
       Object.defineProperty(navigator, 'languages', {
         get: () => ['en-US', 'en'],
       });
       
-      // Remove automation-related properties from window
       // @ts-ignore
       delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
       // @ts-ignore
@@ -76,20 +66,8 @@ export abstract class BaseAI {
       // @ts-ignore
       delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
       
-      // Override permissions query
-      const originalQuery = window.navigator.permissions.query;
       // @ts-ignore
-      window.navigator.permissions.query = (parameters: any) => (
-        parameters.name === 'notifications' ?
-          Promise.resolve({ state: Notification.permission }) :
-          originalQuery(parameters)
-      );
-      
-      // Add chrome runtime (expected by some detection scripts)
-      // @ts-ignore
-      window.chrome = {
-        runtime: {},
-      };
+      window.chrome = { runtime: {} };
     });
 
     await this.page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 60000 });

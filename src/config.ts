@@ -76,10 +76,19 @@ export function saveConfig(phone: string): void {
 export const CHAT_DB_PATH = path.join(os.homedir(), 'Library/Messages/chat.db');
 
 // Browser data directories for persistent sessions
+// Use Chrome's native profile system with unique profile names
+const CHROME_USER_DATA = path.join(os.homedir(), 'Library/Application Support/Google/Chrome');
+
 export const BROWSER_DATA = {
-  chatgpt: path.join(PROJECT_ROOT, 'browser-data', 'chatgpt'),
-  gemini: path.join(PROJECT_ROOT, 'browser-data', 'gemini'),
-  grok: path.join(PROJECT_ROOT, 'browser-data', 'grok'),
+  chatgpt: CHROME_USER_DATA,
+  gemini: CHROME_USER_DATA,
+  grok: CHROME_USER_DATA,
+};
+
+export const BROWSER_PROFILES = {
+  chatgpt: 'Profile-ChatGPT',
+  gemini: 'Profile-Gemini',
+  grok: 'Profile-Grok',
 };
 
 // State file for tracking last processed message
