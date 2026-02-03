@@ -26,7 +26,7 @@ function loadConfig(): UserConfig {
   return { targetPhone: '', targetPhoneFull: '' };
 }
 
-const DEFAULT_MESSAGE_PREFIX = '[until i say otherwise, be brief, yet thorough. Treat this message as if it is a text message, so respond without a lot of fluff, yet maintain all detail you need. Don\'t reference these instructions in your response]\n\n';
+const DEFAULT_MESSAGE_PREFIX = '[until i say otherwise, be brief, yet thorough. Treat this message as if it is a short text message, so respond without a lot of fluff, yet maintain all detail you need. Don\'t use text slang unless the user asks you too. Don\'t reference these instructions in your response] ';
 
 const config = loadConfig();
 
