@@ -121,3 +121,17 @@ MIT
 ## Disclaimer
 
 Automating web interfaces may violate terms of service. Please be advised this can result in bans, rate limits, and more. I am not liable for anything you decide to do with this.
+
+## Update Script
+
+To pull the latest features from GitHub and rebuild locally, run:
+
+```
+bash scripts/update.sh
+```
+
+The script will:
+- fetch latest changes from origin
+- merge origin/main (fast-forward when possible)
+- install dependencies
+- build the project
