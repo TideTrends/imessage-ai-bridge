@@ -32,19 +32,64 @@ export abstract class BaseAI {
       headless: false,
       viewport: null,
       args: [
+        // Anti-detection flags
         '--disable-blink-features=AutomationControlled',
         '--disable-infobars',
         '--no-first-run',
         '--no-default-browser-check',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-component-update',
+        '--disable-dev-shm-usage',
+        '--no-sandbox',
       ],
       ignoreDefaultArgs: ['--enable-automation'],
+      // Use real browser locale/timezone
+      locale: 'en-US',
+      timezoneId: 'America/Denver',
     });
 
     const pages = this.context.pages();
     this.page = pages.length > 0 ? pages[0] : await this.context.newPage();
 
+    // Comprehensive anti-detection script
     await this.page.addInitScript(() => {
+      // Hide webdriver
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+      
+      // Hide automation flags
+      Object.defineProperty(navigator, 'plugins', {
+        get: () => [1, 2, 3, 4, 5], // Fake plugins array
+      });
+      
+      // Fake languages
+      Object.defineProperty(navigator, 'languages', {
+        get: () => ['en-US', 'en'],
+      });
+      
+      // Remove automation-related properties from window
+      // @ts-ignore
+      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+      // @ts-ignore
+      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+      // @ts-ignore
+      delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+      
+      // Override permissions query
+      const originalQuery = window.navigator.permissions.query;
+      // @ts-ignore
+      window.navigator.permissions.query = (parameters: any) => (
+        parameters.name === 'notifications' ?
+          Promise.resolve({ state: Notification.permission }) :
+          originalQuery(parameters)
+      );
+      
+      // Add chrome runtime (expected by some detection scripts)
+      // @ts-ignore
+      window.chrome = {
+        runtime: {},
+      };
     });
 
     await this.page.goto(this.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
@@ -252,6 +297,27 @@ export abstract class BaseAI {
 
   protected sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Random delay between min and max ms for human-like behavior
+   */
+  protected randomDelay(min: number, max: number): Promise<void> {
+    const delay = Math.floor(Math.random() * (max - min + 1)) + min;
+    return this.sleep(delay);
+  }
+
+  /**
+   * Type with human-like variable speed
+   */
+  protected async humanType(text: string): Promise<void> {
+    if (!this.page) return;
+    
+    for (const char of text) {
+      await this.page.keyboard.type(char);
+      // Random delay between 30-120ms per character (human typing speed)
+      await this.randomDelay(30, 120);
+    }
   }
 
   protected async waitForStabilization(

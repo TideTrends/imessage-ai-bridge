@@ -73,7 +73,8 @@ export class GrokAI extends BaseAI {
     if (!input) throw this.createError('Could not find input field', 'INPUT_NOT_FOUND');
     
     await input.click();
-    await this.page.keyboard.type(message, { delay: 10 });
+    await this.randomDelay(100, 300);
+    await this.humanType(message);
   }
 
   protected async submitMessage(): Promise<void> {
@@ -82,7 +83,7 @@ export class GrokAI extends BaseAI {
     const sendButtonSelector = 'button[aria-label*="Send"], button[type="submit"]';
     
     try {
-      await this.sleep(300);
+      await this.randomDelay(200, 500);
       
       const sendButton = await this.page.$(sendButtonSelector);
       if (sendButton) {

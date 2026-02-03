@@ -91,7 +91,8 @@ export class GeminiAI extends BaseAI {
     if (!input) throw this.createError('Could not find input field', 'INPUT_NOT_FOUND');
     
     await input.click({ force: true });
-    await this.page.keyboard.type(message, { delay: 10 });
+    await this.randomDelay(100, 300);
+    await this.humanType(message);
   }
 
   protected async submitMessage(): Promise<void> {
@@ -100,7 +101,7 @@ export class GeminiAI extends BaseAI {
     const sendButtonSelector = 'button[aria-label*="Send"]';
     
     try {
-      await this.sleep(500); // Wait for any upload to settle
+      await this.randomDelay(200, 500);
       const sendButton = await this.page.$(sendButtonSelector);
       if (sendButton) {
         await sendButton.click();
