@@ -1,5 +1,5 @@
 import * as readline from 'readline';
-import { AIType, POLL_INTERVAL, RESPONSE_TIMEOUT, needsSetup, saveConfig, CONFIG_FILE, MESSAGE_SUFFIX } from './config';
+import { AIType, POLL_INTERVAL, RESPONSE_TIMEOUT, needsSetup, saveConfig, CONFIG_FILE, MESSAGE_PREFIX } from './config';
 import fs from 'fs';
 import {
   getNewMessages,
@@ -21,6 +21,16 @@ const aiInstances: Record<AIType, BaseAI> = {
   chatgpt: new ChatGPTAI(),
   grok: new GrokAI(),
 };
+
+// Track which AI has received the prefix instruction
+const prefixSent: Record<AIType, boolean> = {
+  gemini: false,
+  chatgpt: false,
+  grok: false,
+};
+
+// Track the last AI used to detect switches
+let lastAIUsed: AIType | null = null;
 
 // Message queue for sequential processing
 const messageQueue: Message[] = [];
@@ -96,6 +106,9 @@ async function processMessage(msg: Message): Promise<void> {
           aiInstances.chatgpt.startNewConversation(),
           aiInstances.grok.startNewConversation(),
         ]);
+        prefixSent.gemini = false;
+        prefixSent.chatgpt = false;
+        prefixSent.grok = false;
         sendMessage('All conversations have been reset.');
         return;
       }
@@ -108,10 +121,12 @@ async function processMessage(msg: Message): Promise<void> {
 
   const { ai, message: parsedMsg, startNewChat, modelTier } = parseMessage(text || '');
   const baseMessage = parsedMsg || 'What is in this image?';
-  const finalMessage = baseMessage + MESSAGE_SUFFIX;
+  
+  const needsPrefix = !prefixSent[ai] || startNewChat || (lastAIUsed !== null && lastAIUsed !== ai);
+  const finalMessage = needsPrefix ? MESSAGE_PREFIX + baseMessage : baseMessage;
 
   const tierLabel = modelTier !== 'fast' ? ` [${modelTier}]` : '';
-  console.log(`[Router] ${ai.toUpperCase()}${tierLabel}${startNewChat ? ' (new chat)' : ''}`);
+  console.log(`[Router] ${ai.toUpperCase()}${tierLabel}${startNewChat ? ' (new chat)' : ''}${needsPrefix ? ' (with prefix)' : ''}`);
 
   const aiInstance = aiInstances[ai];
 
@@ -126,6 +141,7 @@ async function processMessage(msg: Message): Promise<void> {
     if (startNewChat) {
       console.log(`[${ai}] Starting new conversation...`);
       await aiInstance.startNewConversation();
+      prefixSent[ai] = false;
     }
 
     const response = await aiInstance.sendAndGetResponse(
@@ -134,6 +150,9 @@ async function processMessage(msg: Message): Promise<void> {
       images,
       modelTier
     );
+    
+    prefixSent[ai] = true;
+    lastAIUsed = ai;
     
     console.log(`[${ai}] Response: "${response.substring(0, 80)}..."`);
     sendMessage(response);

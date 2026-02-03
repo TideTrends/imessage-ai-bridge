@@ -1,6 +1,10 @@
-import puppeteer, { Browser, Page } from 'puppeteer-core';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, Page } from 'puppeteer-core';
 import { execSync } from 'child_process';
-import { AIType, ModelTier, RESPONSE_TIMEOUT, STABILIZATION_TIME, BROWSER_PROFILES } from '../config';
+import { AIType, ModelTier, RESPONSE_TIMEOUT, STABILIZATION_TIME } from '../config';
+
+puppeteer.use(StealthPlugin());
 
 export interface AIError extends Error {
   code?: string | number;
@@ -23,18 +27,15 @@ export abstract class BaseAI {
 
     console.log(`[${this.name}] Launching browser...`);
 
-    const profileName = BROWSER_PROFILES[this.name];
-    
     this.browser = await puppeteer.launch({
       headless: false,
       executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
       userDataDir: this.browserDataPath,
       args: [
-        `--profile-directory=${profileName}`,
         '--no-first-run',
         '--no-default-browser-check',
       ],
-    });
+    }) as unknown as Browser;
 
     const pages = await this.browser.pages();
     this.page = pages.length > 0 ? pages[0] : await this.browser.newPage();

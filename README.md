@@ -18,7 +18,7 @@ Send a text message → Get an AI response back. That's it.
 
 1. Watches your iMessage database for new texts
 2. Routes to the right AI based on your message
-3. Automates the web interface using Playwright + Chrome
+3. Automates the web interface using Puppeteer + Chrome
 4. Sends the AI response back via iMessage
 
 It is recommended to create a new iCloud & macOS account for this to run. It will work if you do not do this, albeit in the text thread you will see the same message received and sent, which breaks the authenticity. Again, fully functional, but highly recommended to use an old Mac with it's own iCloud email to accomplish this, particularly because the computer needs to be on constantly. Use Amphetamine app to keep the mac on all the time. 
@@ -56,17 +56,57 @@ Grant **Full Disk Access** to Terminal:
 
 
 
-## Usage
+## Manual Install
 
-### Choose Your AI
+```bash
+git clone https://github.com/TideTrends/imessage-ai-bridge.git
+cd imessage-ai-bridge
+npm install
+npm run build
+npm start
+```
 
-| Message | AI |
-|---------|-----|
-| `Hello` | Gemini (default) |
-| `chatgpt Hello` | ChatGPT |
-| `grok Hello` | Grok |
+## Commands
 
-### Model Power
+```bash
+npm start            # Run the bridge
+npm start -- --setup # Re-configure phone number
+npm run build        # Rebuild after changes
+```
+
+## Configuration
+
+Settings are stored in `~/imessage-ai-bridge/config.json`:
+
+```json
+{
+  "targetPhone": "5551234567",
+  "targetPhoneFull": "+15551234567",
+  "messagePrefix": "[be brief, respond like a text message]\n\n"
+}
+```
+
+**messagePrefix** - Text prepended to the first message of each new conversation. Default instructs AI to be brief and text-like. Set to `""` to disable.
+
+## Text Commands
+
+Send these as iMessages:
+
+| Command | Description |
+|---------|-------------|
+| `reset` | Clear all AI conversations |
+| `status` | Check which AIs are logged in |
+| (blank line + message) | Start new conversation |
+
+## AI Selection
+
+| Prefix | AI |
+|--------|-----|
+| (none) | Gemini (default) |
+| `chatgpt` | ChatGPT |
+| `grok` | Grok |
+
+## Model Power
 
 | Prefix | Mode |
 |--------|------|
@@ -76,39 +116,20 @@ Grant **Full Disk Access** to Terminal:
 
 **Examples:**
 - `What's the weather?` → Fast Gemini
-- `.Explain black holes` → Gemini Pro
-- `..chatgpt Write code` → GPT Thinking
+- `.Explain black holes` → Gemini Deep Think
+- `..chatgpt Write code` → ChatGPT o1/o3
 
-### Features
+## Update
 
-- **New chat**: Press Enter before your message
-- **Reset all**: Send `reset`
-- **Status check**: Send `status`
-
-
-## Manual Install
+Pull latest from GitHub:
 
 ```bash
-git clone https://github.com/TideTrends/imessage-ai-bridge.git
-cd imessage-ai-bridge
-npm install
-npx playwright install chromium
-npm run build
-npm start
+bash scripts/update.sh
 ```
-
-## Commands
-
-```bash
-npm start      # Run the bridge
-npm run login  # Open browsers for login
-npm run build  # Rebuild after changes
-```
-
 
 ## Troubleshooting
 
-**"Not logged in"** → Run `npm run login` and sign into each service
+**"Not logged in"** → Sign into each AI in the browser windows that open
 
 **No response** → Check browser windows for captchas/popups
 
@@ -120,18 +141,4 @@ MIT
 
 ## Disclaimer
 
-Automating web interfaces may violate terms of service. Please be advised this can result in bans, rate limits, and more. I am not liable for anything you decide to do with this.
-
-## Update Script
-
-To pull the latest features from GitHub and rebuild locally, run:
-
-```
-bash scripts/update.sh
-```
-
-The script will:
-- fetch latest changes from origin
-- merge origin/main (fast-forward when possible)
-- install dependencies
-- build the project
+Automating web interfaces may violate terms of service. This can result in bans or rate limits. Use at your own risk.
