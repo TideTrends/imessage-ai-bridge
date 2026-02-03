@@ -22,14 +22,18 @@ const aiInstances: Record<AIType, BaseAI> = {
   grok: new GrokAI(),
 };
 
-// Track which AI has received the prefix instruction
+const skippedAIs: Record<AIType, boolean> = {
+  gemini: false,
+  chatgpt: false,
+  grok: false,
+};
+
 const prefixSent: Record<AIType, boolean> = {
   gemini: false,
   chatgpt: false,
   grok: false,
 };
 
-// Track the last AI used to detect switches
 let lastAIUsed: AIType | null = null;
 
 // Message queue for sequential processing
@@ -61,6 +65,47 @@ async function runSetup(): Promise<void> {
   process.exit(0);
 }
 
+async function waitForLoginOrSkip(name: AIType, ai: BaseAI): Promise<boolean> {
+  console.log(`[${name}] Not logged in. Please log in via the browser window.`);
+  console.log(`[${name}] Press 's' + Enter to skip this AI\n`);
+  
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    
+    let resolved = false;
+    
+    const checkLogin = async () => {
+      if (resolved) return;
+      
+      if (await ai.isLoggedIn()) {
+        resolved = true;
+        rl.close();
+        console.log(`[${name}] Login detected!`);
+        resolve(true);
+        return;
+      }
+      
+      setTimeout(checkLogin, 2000);
+    };
+    
+    rl.on('line', (input) => {
+      if (resolved) return;
+      
+      if (input.trim().toLowerCase() === 's') {
+        resolved = true;
+        rl.close();
+        console.log(`[${name}] Skipped - this AI will not be available\n`);
+        resolve(false);
+      }
+    });
+    
+    checkLogin();
+  });
+}
+
 async function initializeAIs(): Promise<void> {
   console.log('\n=== Initializing AI Browsers ===\n');
 
@@ -73,17 +118,31 @@ async function initializeAIs(): Promise<void> {
   console.log('\n=== Checking Login Status ===\n');
 
   for (const [name, ai] of Object.entries(aiInstances)) {
-    await new Promise(r => setTimeout(r, 3000));
+    const aiName = name as AIType;
+    await new Promise(r => setTimeout(r, 2000));
     const loggedIn = await ai.isLoggedIn();
+    
     if (!loggedIn) {
-      console.log(`[${name}] Not logged in. Please log in via the browser window.`);
-      await ai.waitForLogin();
+      const didLogin = await waitForLoginOrSkip(aiName, ai);
+      if (!didLogin) {
+        skippedAIs[aiName] = true;
+        await ai.cleanup();
+      }
     } else {
       console.log(`[${name}] Already logged in!`);
     }
   }
 
-  console.log('\n=== All AIs Ready! ===\n');
+  const activeAIs = Object.entries(skippedAIs)
+    .filter(([_, skipped]) => !skipped)
+    .map(([name]) => name);
+  
+  if (activeAIs.length === 0) {
+    console.log('\n[Error] No AIs configured! At least one AI must be logged in.\n');
+    process.exit(1);
+  }
+
+  console.log(`\n=== Ready! Active AIs: ${activeAIs.join(', ')} ===\n`);
 }
 
 /**
@@ -101,11 +160,11 @@ async function processMessage(msg: Message): Promise<void> {
     if (isCmd) {
       if (command === 'reset') {
         console.log('[Command] Resetting all conversations...');
-        await Promise.all([
-          aiInstances.gemini.startNewConversation(),
-          aiInstances.chatgpt.startNewConversation(),
-          aiInstances.grok.startNewConversation(),
-        ]);
+        const resetPromises = [];
+        if (!skippedAIs.gemini) resetPromises.push(aiInstances.gemini.startNewConversation());
+        if (!skippedAIs.chatgpt) resetPromises.push(aiInstances.chatgpt.startNewConversation());
+        if (!skippedAIs.grok) resetPromises.push(aiInstances.grok.startNewConversation());
+        await Promise.all(resetPromises);
         prefixSent.gemini = false;
         prefixSent.chatgpt = false;
         prefixSent.grok = false;
@@ -113,13 +172,25 @@ async function processMessage(msg: Message): Promise<void> {
         return;
       }
       if (command === 'status') {
-        sendMessage('iMessage AI Bridge running! Use . for thinking, .. for max model.');
+        const activeAIs = Object.entries(skippedAIs)
+          .filter(([_, skipped]) => !skipped)
+          .map(([name]) => name);
+        sendMessage(`Active AIs: ${activeAIs.join(', ')}. Use . for thinking, .. for max.`);
         return;
       }
     }
   }
 
   const { ai, message: parsedMsg, startNewChat, modelTier } = parseMessage(text || '');
+  
+  if (skippedAIs[ai]) {
+    const availableAIs = Object.entries(skippedAIs)
+      .filter(([_, skipped]) => !skipped)
+      .map(([name]) => name);
+    sendMessage(`${ai.toUpperCase()} is not configured. Available: ${availableAIs.join(', ')}`);
+    return;
+  }
+  
   const baseMessage = parsedMsg || 'What is in this image?';
   
   const needsPrefix = !prefixSent[ai] || startNewChat || (lastAIUsed !== null && lastAIUsed !== ai);
@@ -222,11 +293,11 @@ async function pollForMessages(): Promise<void> {
 
 async function cleanup(): Promise<void> {
   console.log('\n[Shutdown] Cleaning up...');
-  await Promise.all([
-    aiInstances.gemini.cleanup(),
-    aiInstances.chatgpt.cleanup(),
-    aiInstances.grok.cleanup(),
-  ]);
+  const cleanupPromises = [];
+  if (!skippedAIs.gemini) cleanupPromises.push(aiInstances.gemini.cleanup());
+  if (!skippedAIs.chatgpt) cleanupPromises.push(aiInstances.chatgpt.cleanup());
+  if (!skippedAIs.grok) cleanupPromises.push(aiInstances.grok.cleanup());
+  await Promise.all(cleanupPromises);
   console.log('[Shutdown] Done.');
   process.exit(0);
 }
